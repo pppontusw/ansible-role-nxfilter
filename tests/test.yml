@@ -1,0 +1,24 @@
+- name: set up
+  hosts: all
+  vars:
+    - nxfilter_version: 3.3.1
+    - nxfilter_sha256sum: 6d88d11d6285b1c2d40045152305592def77d3f0c86d7a2d026c5ec0c6136cff 
+  roles: 
+    - nxfilter
+  tags: setup
+
+- name: test
+  hosts: all
+  tasks:
+    - wait_for: port=80
+    - shell: nslookup google.com "{{ansible_default_ipv4.address}}"
+      delegate_to: localhost
+      register: ns
+      retries: 10
+      delay: 3
+    - get_url: 
+        url: "http://{{ansible_default_ipv4.address}}/admin"
+        dest: /tmp
+    - debug:
+        msg: "{{ns.stdout_lines}}"
+  tags: test

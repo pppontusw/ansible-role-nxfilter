@@ -1,0 +1,9 @@
+- name: restart nxfilter
+  shell: sh /nxfilter/bin/shutdown.sh && sh /nxfilter/bin/startup.sh -d
+  become: yes
+
+- name: restart firewalld
+  service:
+    name: firewalld
+    state: restarted
+  become: yes

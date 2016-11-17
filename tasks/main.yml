@@ -1,0 +1,72 @@
+- include: "{{ ansible_os_family }}.yml"
+  become: yes
+  tags: nxfilter
+
+- include: firewalld.yml
+  become: yes
+  when: ansible_os_family == 'RedHat'
+  tags: firewalld
+
+- name: download nxfilter
+  get_url:
+    url: http://nxfilter.org/download/nxfilter-{{nxfilter_version}}.zip
+    dest: /tmp/nxfilter-{{nxfilter_version}}.zip
+    sha256sum: "{{nxfilter_sha256sum}}"
+  tags: nxfilter
+
+- name: create nxfilter directory
+  file:
+    path: /nxfilter
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  become: yes
+  tags: nxfilter
+
+- name: extract nxfilter
+  unarchive:
+    src: /tmp/nxfilter-{{nxfilter_version}}.zip
+    dest: /nxfilter/
+    mode: 0755
+    copy: no
+  become: yes
+  tags: nxfilter
+
+- name: stop nxfilter
+  shell: sh /nxfilter/bin/shutdown.sh
+  become: yes
+  tags: nxfilter
+
+- name: update blacklist
+  shell: sh /nxfilter/bin/update_sh.sh
+  become: yes
+  tags: nxfilter
+
+#- name: restore backup config
+#  copy: 
+#    src: ../configs/{{config_restore}}/config.h2.db
+#    dest: /nxfilter/db/config.h2.db
+#  become: yes
+#  tags: nxfilter
+#  when: config_restore is defined
+
+- name: start nxfilter
+  shell: sh /nxfilter/bin/startup.sh -d
+  become: yes
+  tags: nxfilter
+
+- name: add to rc.local
+  lineinfile:
+    dest: /etc/rc.local
+    regexp: ^/nxfilter/bin/startup.sh -d$
+    line: /nxfilter/bin/startup.sh -d
+    insertbefore: ^exit 0
+  become: yes
+  tags: nxfilter
+
+- name: yes, use rc.local
+  shell: chmod +x /etc/rc.d/rc.local
+  become: yes
+  when: ansible_os_family == 'RedHat' 
+  tags: nxfilter
